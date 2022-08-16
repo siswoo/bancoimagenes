@@ -359,6 +359,28 @@ if($condicion=='subir1'){
     }
 }
 
+if($condicion=='subir2'){
+    $nombre = $_FILES['video']['name'];
+    $nombre2 = explode('.',$nombre);
+    $nombre_solo = strtolower($nombre2[0]);
+    $nombre_formato = strtolower($nombre2[1]);
+    $temporal = $_FILES['video']['tmp_name'];
+    $ruta = 'uploads/'.$nombre;
+
+    if($nombre_formato!='mp4' and $nombre_formato!='avi' and $nombre_formato!='mkv' and $nombre_formato!='mov' and $nombre_formato!='wmv' and $nombre_formato!='xvid' and $nombre_formato!='rm'){
+        $datos = [
+            "estatus"   => "error",
+            "msg"   => "El archivo no tiene un formato valido",
+        ];
+        echo json_encode($datos);
+        exit;
+    }
+
+    $sql1 = "INSERT INTO videos (nombre,formato,ruta,fecha_inicio) VALUES ('$nombre','$nombre_formato','$ruta','$fecha_inicio')";
+    $proceso1 = mysqli_query($conexion,$sql1);
+    move_uploaded_file($temporal,"../".$ruta);
+}
+
 if($condicion=='biblioteca1'){
     $html = '';
 
@@ -408,6 +430,172 @@ if($condicion=='eliminar1'){
     }
 
     $sql2 = "DELETE FROM imagenes WHERE id = ".$id;
+    $proceso2 = mysqli_query($conexion,$sql2);
+
+    unlink("../".$ruta);
+
+    $datos = [
+        "estatus"   => "ok",
+        "msg"   => "Se ha eliminado el archivo exitosamente",
+    ];
+    echo json_encode($datos);
+}
+
+if($condicion=='biblioteca2'){
+    $html = '';
+
+    $sql1 = "SELECT * FROM videos";
+    $proceso1 = mysqli_query($conexion,$sql1);
+    $contador1 = mysqli_num_rows($proceso1);
+    if($contador1==0){
+        $datos = [
+            "estatus"   => "error",
+            "html"   => "<div class='col-12 text-center' style='font-size: 19px; font-weight: bold;'>No hay videos aún guardados en la biblioteca<div>",
+        ];
+        echo json_encode($datos);
+        exit;
+    }else{
+        while($row1=mysqli_fetch_array($proceso1)){
+            $id = $row1["id"];
+            $nombre = $row1["nombre"];
+            $formato = $row1["formato"];
+            $ruta = $row1["ruta"];
+            $fecha_inicio = $row1["fecha_inicio"];
+            $html .= '
+                <div class="col-4 text-center">
+                    <video style="width:400px;" src="../'.$ruta.'" controls></video>
+                    <a href="../'.$ruta.'" target="_blank" style="text-decoration:none;">
+                        <button type="button" class="btn btn-primary">Ruta</button>
+                    </a>
+                    <button type="button" class="btn btn-danger" onclick="eliminar2('.$id.');">Eliminar</button>
+                </div>
+            ';
+        }
+    }
+
+     $datos = [
+        "estatus"   => "ok",
+        "html"   => $html,
+    ];
+    echo json_encode($datos);
+}
+
+if($condicion=='eliminar2'){
+    $id = $_POST['id'];
+
+    $sql1 = "SELECT * FROM videos WHERE id = ".$id;
+    $proceso1 = mysqli_query($conexion,$sql1);
+    while($row1=mysqli_fetch_array($proceso1)){
+        $ruta = $row1["ruta"];
+    }
+
+    $sql2 = "DELETE FROM videos WHERE id = ".$id;
+    $proceso2 = mysqli_query($conexion,$sql2);
+
+    unlink("../".$ruta);
+
+    $datos = [
+        "estatus"   => "ok",
+        "msg"   => "Se ha eliminado el archivo exitosamente",
+    ];
+    echo json_encode($datos);
+}
+
+if($condicion=='subir3'){
+    $errores = 0;
+    $errores_html = '|';
+    $permitidos = array('gif');
+    $images_arr = array();
+
+    foreach($_FILES['images']['name'] as $key=>$val){
+        $image_name = $_FILES['images']['name'][$key];
+        $tmp_name   = $_FILES['images']['tmp_name'][$key];
+        $size       = $_FILES['images']['size'][$key];
+        $type       = $_FILES['images']['type'][$key];
+        $error      = $_FILES['images']['error'][$key];
+        
+        $fileType = pathinfo($image_name,PATHINFO_EXTENSION);
+
+        $imagen_general = explode('.',$image_name);
+        $imagen_nombre = $imagen_general[0];
+        $imagen_formato = $imagen_general[1];
+        $imagen_nombre_nuevo = $imagen_nombre.'.webp';
+        $ruta = "uploads/".$imagen_nombre_nuevo;
+
+        if(in_array($fileType, $permitidos)){
+            $sql1 = "INSERT INTO gifs (nombre,formato,ruta,fecha_inicio) VALUES ('$image_name','$type','$ruta','$fecha_inicio')";
+            $proceso1 = mysqli_query($conexion,$sql1);
+            move_uploaded_file($tmp_name,"../".$ruta);
+        }else{
+            $errores = $errores+1;
+            $errores_html .= $image_name.' | ';
+        }
+    }
+
+    if($errores>=1){
+        $datos = [
+            "estatus"   => "error",
+            "msg"   => "Algunos archivos no cumplen con los requisitos permitidos = ".$errores_html,
+        ];
+        echo json_encode($datos);
+    }else{
+        $datos = [
+            "estatus"   => "ok",
+            "msg"   => "Todo se ha subido correctamente",
+        ];
+        echo json_encode($datos);
+    }
+}
+
+if($condicion=='biblioteca3'){
+    $html = '';
+
+    $sql1 = "SELECT * FROM gifs";
+    $proceso1 = mysqli_query($conexion,$sql1);
+    $contador1 = mysqli_num_rows($proceso1);
+    if($contador1==0){
+        $datos = [
+            "estatus"   => "error",
+            "html"   => "<div class='col-12 text-center' style='font-size: 19px; font-weight: bold;'>No hay imagenes aún guardadas en la biblioteca<div>",
+        ];
+        echo json_encode($datos);
+        exit;
+    }else{
+        while($row1=mysqli_fetch_array($proceso1)){
+            $id = $row1["id"];
+            $nombre = $row1["nombre"];
+            $formato = $row1["formato"];
+            $ruta = $row1["ruta"];
+            $fecha_inicio = $row1["fecha_inicio"];
+            $html .= '
+                <div class="col-4 text-center">
+                    <img class="img-fluid mb-3" style="width:300px;" src="../'.$ruta.'">
+                    <a href="../'.$ruta.'" target="_blank" style="text-decoration:none;">
+                        <button type="button" class="btn btn-primary">Ruta</button>
+                    </a>
+                    <button type="button" class="btn btn-danger" onclick="eliminar1('.$id.');">Eliminar</button>
+                </div>
+            ';
+        }
+    }
+
+     $datos = [
+        "estatus"   => "ok",
+        "html"   => $html,
+    ];
+    echo json_encode($datos);
+}
+
+if($condicion=='eliminar3'){
+    $id = $_POST['id'];
+
+    $sql1 = "SELECT * FROM gifs WHERE id = ".$id;
+    $proceso1 = mysqli_query($conexion,$sql1);
+    while($row1=mysqli_fetch_array($proceso1)){
+        $ruta = $row1["ruta"];
+    }
+
+    $sql2 = "DELETE FROM gifs WHERE id = ".$id;
     $proceso2 = mysqli_query($conexion,$sql2);
 
     unlink("../".$ruta);
